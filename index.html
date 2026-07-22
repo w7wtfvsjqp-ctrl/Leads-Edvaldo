@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Leads — Naport</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#14161B">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Leads Naport">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -211,11 +219,14 @@
         <button class="icon-btn" id="refreshBtn" title="Sincronizar">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16M3 21v-5h5"/></svg>
         </button>
-        <button class="icon-btn" id="settingsBtn" title="Configurações">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        </button>
       </div>
     </div>
+  </div>
+
+  <div id="installBanner" style="display:none;margin:10px 16px 0;background:var(--surface);border:1px solid var(--accent);border-radius:12px;padding:12px 14px;display:none;align-items:center;gap:10px;">
+    <div style="flex:1;font-size:12.5px;color:var(--text-dim);line-height:1.4;" id="installBannerText"></div>
+    <button id="installBannerBtn" style="display:none;background:var(--accent);color:#1a0f08;border:none;border-radius:8px;padding:8px 12px;font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap;">Instalar</button>
+    <button id="installBannerClose" style="background:transparent;border:none;color:var(--text-dim);font-size:16px;cursor:pointer;padding:2px 4px;">✕</button>
   </div>
 
   <div class="track-wrap" id="trackWrap" style="display:none;">
@@ -248,22 +259,6 @@
   <button class="fab" id="exportFab" style="display:none;" title="Exportar relatório">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a0f08" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/><path d="M20 16v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3"/></svg>
   </button>
-</div>
-
-<!-- SETUP OVERLAY -->
-<div class="overlay show" id="setupOverlay">
-  <div class="sheet" style="border-radius:20px;margin:auto;">
-    <div class="setup-box">
-      <h2>Conectar à planilha</h2>
-      <p>Cole abaixo a URL do Google Apps Script publicado como Web App (veja o guia que o Claude te passou). Isso conecta o app à sua planilha de leads.</p>
-      <label style="text-align:left;">URL do Web App</label>
-      <input type="text" id="setupUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
-      <div class="btn-row">
-        <button class="btn btn-accent" id="setupSaveBtn">Conectar</button>
-      </div>
-      <p id="setupError" style="color:var(--desqualificado);display:none;margin-top:12px;"></p>
-    </div>
-  </div>
 </div>
 
 <!-- FILTER SHEET -->
@@ -338,35 +333,11 @@
     t._timer = setTimeout(()=> t.classList.remove('show'), 2600);
   }
 
-  // ---------- Setup / config ----------
+  // ---------- Config ----------
   async function loadConfig(){
     APPS_SCRIPT_URL = DEFAULT_APPS_SCRIPT_URL;
-    try{
-      const r = await window.storage.get('config:apps_script_url');
-      if(r && r.value){ APPS_SCRIPT_URL = r.value; } // permite trocar depois pelas configurações
-    }catch(e){ /* usa o padrão embutido */ }
-    $('setupOverlay').classList.remove('show');
     fetchLeads();
   }
-
-  $('setupSaveBtn').onclick = async () => {
-    const url = $('setupUrlInput').value.trim();
-    if(!url.startsWith('https://script.google.com/')){
-      $('setupError').style.display='block';
-      $('setupError').textContent = 'Cole a URL completa do Web App (começa com https://script.google.com/...)';
-      return;
-    }
-    await window.storage.set('config:apps_script_url', url);
-    APPS_SCRIPT_URL = url;
-    $('setupOverlay').classList.remove('show');
-    fetchLeads();
-  };
-
-  $('settingsBtn').onclick = async () => {
-    $('setupUrlInput').value = APPS_SCRIPT_URL || '';
-    $('setupError').style.display='none';
-    $('setupOverlay').classList.add('show');
-  };
 
   // ---------- Fetch ----------
   async function fetchLeads(){
@@ -641,6 +612,62 @@
   };
 
   loadConfig();
+
+  // ---------- Instalação na tela inicial (PWA) ----------
+  (function setupInstall(){
+    const banner = $('installBanner');
+    const text = $('installBannerText');
+    const btn = $('installBannerBtn');
+    const closeBtn = $('installBannerClose');
+    let deferredPrompt = null;
+
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    if (isStandalone) return; // já instalado, não mostra nada
+
+    window.storage.get('config:install_dismissed').then((r) => {
+      if (r && r.value === 'true') return; // usuário já dispensou antes
+      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+      if (isIOS) {
+        text.textContent = 'Instale este app: toque em Compartilhar ⬆️ e depois em "Adicionar à Tela de Início".';
+        banner.style.display = 'flex';
+      }
+      // No Android/Chrome, o botão só aparece quando o navegador dispara o evento abaixo
+    }).catch(()=>{});
+
+    window.addEventListener('beforeinstallprompt', async (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const dismissed = await window.storage.get('config:install_dismissed').catch(()=>null);
+      if (dismissed && dismissed.value === 'true') return;
+      text.textContent = 'Instale este app na tela inicial para abrir mais rápido, como um aplicativo normal.';
+      btn.style.display = 'inline-block';
+      banner.style.display = 'flex';
+    });
+
+    btn.onclick = async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      banner.style.display = 'none';
+    };
+
+    closeBtn.onclick = () => {
+      banner.style.display = 'none';
+      window.storage.set('config:install_dismissed', 'true').catch(()=>{});
+    };
+
+    window.addEventListener('appinstalled', () => {
+      banner.style.display = 'none';
+    });
+  })();
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+    });
+  }
 })();
 </script>
 </body>
