@@ -624,22 +624,24 @@
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
     if (isStandalone) return; // já instalado, não mostra nada
 
-    window.storage.get('config:install_dismissed').then((r) => {
-      if (r && r.value === 'true') return; // usuário já dispensou antes
-      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    let dismissed = false;
+    try { dismissed = localStorage.getItem('install_dismissed') === 'true'; } catch(e) {}
 
+    if (!dismissed) {
+      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
       if (isIOS) {
         text.textContent = 'Instale este app: toque em Compartilhar ⬆️ e depois em "Adicionar à Tela de Início".';
         banner.style.display = 'flex';
       }
       // No Android/Chrome, o botão só aparece quando o navegador dispara o evento abaixo
-    }).catch(()=>{});
+    }
 
-    window.addEventListener('beforeinstallprompt', async (e) => {
+    window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
-      const dismissed = await window.storage.get('config:install_dismissed').catch(()=>null);
-      if (dismissed && dismissed.value === 'true') return;
+      let d = false;
+      try { d = localStorage.getItem('install_dismissed') === 'true'; } catch(err) {}
+      if (d) return;
       text.textContent = 'Instale este app na tela inicial para abrir mais rápido, como um aplicativo normal.';
       btn.style.display = 'inline-block';
       banner.style.display = 'flex';
@@ -655,7 +657,7 @@
 
     closeBtn.onclick = () => {
       banner.style.display = 'none';
-      window.storage.set('config:install_dismissed', 'true').catch(()=>{});
+      try { localStorage.setItem('install_dismissed', 'true'); } catch(e) {}
     };
 
     window.addEventListener('appinstalled', () => {
