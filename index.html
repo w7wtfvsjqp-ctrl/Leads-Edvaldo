@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Leads — Naport</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#14161B;
+    --surface:#1E2128;
+    --surface-2:#262A33;
+    --border:#323742;
+    --text:#EDEFF2;
+    --text-dim:#9AA0AC;
+    --accent:#FF6B35;
+    --accent-dim:#3a261c;
+    --qualificado:#4DA8FF;
+    --qualificado-dim:#16273a;
+    --desqualificado:#FF5470;
+    --desqualificado-dim:#3a1b22;
+    --vendeu:#3DDC84;
+    --vendeu-dim:#163826;
+    --radius:14px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;}
+  body{min-height:100vh;}
+  #app{max-width:560px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative;}
+  h1,h2,h3{font-family:'Space Grotesk',sans-serif;margin:0;}
+  button{font-family:inherit;}
+  ::selection{background:var(--accent);color:#14161B;}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+  /* Topbar */
+  .topbar{
+    position:sticky;top:0;z-index:20;
+    background:rgba(20,22,27,0.92);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border);
+    padding:16px 16px 12px;
+  }
+  .topbar-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .topbar h1{font-size:19px;font-weight:700;letter-spacing:-0.01em;}
+  .topbar .sub{font-size:12.5px;color:var(--text-dim);margin-top:2px;}
+  .icon-btn{
+    background:var(--surface-2);border:1px solid var(--border);border-radius:10px;
+    width:38px;height:38px;display:flex;align-items:center;justify-content:center;
+    color:var(--text);cursor:pointer;flex-shrink:0;transition:transform .15s ease, border-color .15s ease;
+  }
+  .icon-btn:active{transform:scale(0.92);}
+  .icon-btn.spinning svg{animation:spin 0.9s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* Track bar — signature element: trilho de porta automática */
+  .track-wrap{padding:14px 16px 4px;}
+  .track-label{display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;}
+  .track{
+    height:10px;border-radius:6px;overflow:hidden;display:flex;
+    background:var(--surface-2);border:1px solid var(--border);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.2);
+  }
+  .track-seg{height:100%;transition:flex-grow .4s ease;}
+  .track-seg.qualificado{background:var(--qualificado);}
+  .track-seg.desqualificado{background:var(--desqualificado);}
+  .track-seg.vendeu{background:var(--vendeu);}
+  .track-seg.vazio{background:transparent;}
+  .track-rail{height:3px;margin-top:4px;background:repeating-linear-gradient(90deg, var(--border) 0 6px, transparent 6px 12px);border-radius:2px;}
+
+  .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 16px 6px;}
+  .stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 8px;text-align:center;}
+  .stat .n{font-family:'Space Grotesk';font-weight:700;font-size:18px;}
+  .stat .l{font-size:10.5px;color:var(--text-dim);margin-top:2px;text-transform:uppercase;letter-spacing:.03em;}
+  .stat.qualificado .n{color:var(--qualificado);}
+  .stat.desqualificado .n{color:var(--desqualificado);}
+  .stat.vendeu .n{color:var(--vendeu);}
+
+  /* Toolbar */
+  .toolbar{display:flex;gap:8px;padding:12px 16px;}
+  .search-box{
+    flex:1;display:flex;align-items:center;gap:8px;background:var(--surface);
+    border:1px solid var(--border);border-radius:10px;padding:0 12px;height:40px;
+  }
+  .search-box input{
+    flex:1;background:transparent;border:none;color:var(--text);font-size:14px;height:100%;outline:none;
+  }
+  .search-box input::placeholder{color:var(--text-dim);}
+  .filter-btn{
+    height:40px;padding:0 14px;border-radius:10px;background:var(--surface);
+    border:1px solid var(--border);color:var(--text);font-size:13.5px;font-weight:600;
+    display:flex;align-items:center;gap:6px;cursor:pointer;position:relative;
+  }
+  .filter-btn.active{border-color:var(--accent);color:var(--accent);}
+  .filter-dot{position:absolute;top:-4px;right:-4px;width:9px;height:9px;border-radius:50%;background:var(--accent);display:none;}
+  .filter-dot.show{display:block;}
+
+  /* List */
+  .list{flex:1;padding:4px 16px 110px;}
+  .empty-state{text-align:center;padding:60px 20px;color:var(--text-dim);}
+  .empty-state .e-title{color:var(--text);font-weight:600;margin-bottom:6px;font-size:15px;}
+  .skeleton{height:84px;border-radius:var(--radius);background:linear-gradient(100deg, var(--surface) 30%, var(--surface-2) 50%, var(--surface) 70%);background-size:200% 100%;animation:shimmer 1.3s infinite;margin-bottom:10px;}
+  @keyframes shimmer{0%{background-position:0% 0;}100%{background-position:-200% 0;}}
+
+  .card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:13px 14px;margin-bottom:10px;border-left:3px solid var(--border);
+    transition:border-color .2s ease;
+  }
+  .card.st-qualificado{border-left-color:var(--qualificado);}
+  .card.st-desqualificado{border-left-color:var(--desqualificado);}
+  .card.st-vendeu{border-left-color:var(--vendeu);}
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+  .card-name{font-weight:600;font-size:15px;line-height:1.3;}
+  .card-meta{font-size:12.5px;color:var(--text-dim);margin-top:3px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+  .wa-link{color:var(--text-dim);text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
+  .wa-link:active{opacity:.6;}
+  .card-actions{display:flex;gap:6px;margin-top:11px;}
+  .status-pill{
+    flex:1;padding:8px 4px;border-radius:9px;font-size:12px;font-weight:600;text-align:center;
+    border:1px solid var(--border);background:var(--surface-2);color:var(--text-dim);cursor:pointer;
+    transition:all .15s ease;user-select:none;
+  }
+  .status-pill:active{transform:scale(.95);}
+  .status-pill.sel.qualificado{background:var(--qualificado-dim);border-color:var(--qualificado);color:var(--qualificado);}
+  .status-pill.sel.desqualificado{background:var(--desqualificado-dim);border-color:var(--desqualificado);color:var(--desqualificado);}
+  .status-pill.sel.vendeu{background:var(--vendeu-dim);border-color:var(--vendeu);color:var(--vendeu);}
+  .card.saving{opacity:.55;pointer-events:none;}
+
+  /* FAB */
+  .fab{
+    position:fixed;left:50%;transform:translateX(calc(-50% + 196px));bottom:calc(22px + var(--safe-bottom));
+    width:54px;height:54px;border-radius:50%;background:var(--accent);border:none;
+    display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(255,107,53,.4);
+    cursor:pointer;z-index:25;
+  }
+  .fab:active{transform:translateX(calc(-50% + 196px)) scale(.92);}
+  @media (max-width:560px){
+    .fab{left:auto;right:18px;transform:none;}
+    .fab:active{transform:scale(.92);}
+  }
+
+  /* Modal / sheet */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;display:none;align-items:flex-end;justify-content:center;}
+  .overlay.show{display:flex;}
+  .sheet{
+    width:100%;max-width:560px;background:var(--surface);border-radius:20px 20px 0 0;
+    padding:18px 18px calc(18px + var(--safe-bottom));max-height:88vh;overflow-y:auto;
+    border:1px solid var(--border);border-bottom:none;
+    animation:slideUp .25s ease;
+  }
+  @keyframes slideUp{from{transform:translateY(30px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .sheet-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+  .sheet-head h2{font-size:17px;}
+  .sheet label{display:block;font-size:12.5px;color:var(--text-dim);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.04em;}
+  .sheet label:first-of-type{margin-top:0;}
+  .sheet input[type=text], .sheet input[type=date], .sheet input[type=tel]{
+    width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;
+    padding:11px 12px;color:var(--text);font-size:14.5px;outline:none;
+  }
+  .date-row{display:flex;gap:10px;}
+  .date-row > div{flex:1;}
+  .chip-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .chip{
+    padding:8px 13px;border-radius:20px;border:1px solid var(--border);background:var(--surface-2);
+    color:var(--text-dim);font-size:13px;font-weight:600;cursor:pointer;
+  }
+  .chip.sel{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
+  .chip.sel.qualificado{background:var(--qualificado-dim);border-color:var(--qualificado);color:var(--qualificado);}
+  .chip.sel.desqualificado{background:var(--desqualificado-dim);border-color:var(--desqualificado);color:var(--desqualificado);}
+  .chip.sel.vendeu{background:var(--vendeu-dim);border-color:var(--vendeu);color:var(--vendeu);}
+  .checkbox-row{display:flex;align-items:center;gap:9px;margin-top:14px;}
+  .checkbox-row input{width:18px;height:18px;accent-color:var(--accent);}
+  .checkbox-row span{font-size:13.5px;color:var(--text-dim);}
+  .btn-row{display:flex;gap:10px;margin-top:20px;}
+  .btn{
+    flex:1;padding:13px;border-radius:11px;border:none;font-weight:700;font-size:14px;cursor:pointer;
+  }
+  .btn-ghost{background:var(--surface-2);color:var(--text);border:1px solid var(--border);}
+  .btn-accent{background:var(--accent);color:#1a0f08;}
+  .btn:active{opacity:.8;}
+  .report-preview{
+    background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px;
+    font-size:12.5px;color:var(--text-dim);white-space:pre-wrap;margin-top:10px;line-height:1.5;font-family:monospace;
+    max-height:160px;overflow-y:auto;
+  }
+  .toast{
+    position:fixed;bottom:calc(20px + var(--safe-bottom));left:50%;transform:translateX(-50%);
+    background:var(--surface-2);border:1px solid var(--border);color:var(--text);
+    padding:11px 18px;border-radius:30px;font-size:13.5px;z-index:60;opacity:0;pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;box-shadow:0 8px 24px rgba(0,0,0,.4);
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-6px);}
+  .toast.err{border-color:var(--desqualificado);}
+  .setup-box{padding:60px 22px;text-align:center;}
+  .setup-box h2{font-size:19px;margin-bottom:8px;}
+  .setup-box p{color:var(--text-dim);font-size:13.5px;line-height:1.6;margin-bottom:18px;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="topbar">
+    <div class="topbar-row">
+      <div>
+        <h1>Leads · Edvaldo</h1>
+        <div class="sub" id="syncStatus">carregando…</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="icon-btn" id="refreshBtn" title="Sincronizar">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16M3 21v-5h5"/></svg>
+        </button>
+        <button class="icon-btn" id="settingsBtn" title="Configurações">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="track-wrap" id="trackWrap" style="display:none;">
+    <div class="track-label"><span>Distribuição</span><span id="trackPct"></span></div>
+    <div class="track" id="track"></div>
+    <div class="track-rail"></div>
+  </div>
+
+  <div class="stats-row" id="statsRow" style="display:none;">
+    <div class="stat"><div class="n" id="statTotal">0</div><div class="l">Total</div></div>
+    <div class="stat qualificado"><div class="n" id="statQ">0</div><div class="l">Qualif.</div></div>
+    <div class="stat desqualificado"><div class="n" id="statD">0</div><div class="l">Desqual.</div></div>
+    <div class="stat vendeu"><div class="n" id="statV">0</div><div class="l">Vendeu</div></div>
+  </div>
+
+  <div class="toolbar" id="toolbar" style="display:none;">
+    <div class="search-box">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" id="searchInput" placeholder="Buscar nome ou WhatsApp...">
+    </div>
+    <button class="filter-btn" id="filterBtn">
+      Filtros<span class="filter-dot" id="filterDot"></span>
+    </button>
+  </div>
+
+  <div class="list" id="list">
+    <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+  </div>
+
+  <button class="fab" id="exportFab" style="display:none;" title="Exportar relatório">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a0f08" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/><path d="M20 16v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3"/></svg>
+  </button>
+</div>
+
+<!-- SETUP OVERLAY -->
+<div class="overlay show" id="setupOverlay">
+  <div class="sheet" style="border-radius:20px;margin:auto;">
+    <div class="setup-box">
+      <h2>Conectar à planilha</h2>
+      <p>Cole abaixo a URL do Google Apps Script publicado como Web App (veja o guia que o Claude te passou). Isso conecta o app à sua planilha de leads.</p>
+      <label style="text-align:left;">URL do Web App</label>
+      <input type="text" id="setupUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+      <div class="btn-row">
+        <button class="btn btn-accent" id="setupSaveBtn">Conectar</button>
+      </div>
+      <p id="setupError" style="color:var(--desqualificado);display:none;margin-top:12px;"></p>
+    </div>
+  </div>
+</div>
+
+<!-- FILTER SHEET -->
+<div class="overlay" id="filterOverlay">
+  <div class="sheet">
+    <div class="sheet-head"><h2>Filtros</h2><button class="icon-btn" id="closeFilterBtn">✕</button></div>
+
+    <label>Status</label>
+    <div class="chip-row" id="statusChips">
+      <div class="chip qualificado" data-v="Qualificado">Qualificado</div>
+      <div class="chip desqualificado" data-v="Desqualificado">Desqualificado</div>
+      <div class="chip vendeu" data-v="Vendeu">Vendeu</div>
+      <div class="chip" data-v="">Sem status</div>
+    </div>
+
+    <label>Período</label>
+    <div class="chip-row" id="periodChips">
+      <div class="chip" data-v="hoje">Hoje</div>
+      <div class="chip" data-v="7">7 dias</div>
+      <div class="chip" data-v="30">30 dias</div>
+      <div class="chip" data-v="custom">Personalizado</div>
+      <div class="chip" data-v="all">Tudo</div>
+    </div>
+    <div class="date-row" id="customDateRow" style="display:none;margin-top:10px;">
+      <div><label style="margin-top:0;">De</label><input type="date" id="dateFrom"></div>
+      <div><label style="margin-top:0;">Até</label><input type="date" id="dateTo"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="clearFilterBtn">Limpar</button>
+      <button class="btn btn-accent" id="applyFilterBtn">Aplicar</button>
+    </div>
+  </div>
+</div>
+
+<!-- EXPORT SHEET -->
+<div class="overlay" id="exportOverlay">
+  <div class="sheet">
+    <div class="sheet-head"><h2>Exportar relatório</h2><button class="icon-btn" id="closeExportBtn">✕</button></div>
+    <p style="font-size:12.5px;color:var(--text-dim);margin:0 0 4px;">O relatório considera os leads visíveis com os filtros atuais.</p>
+    <label>Número de WhatsApp (com DDD)</label>
+    <input type="tel" id="exportPhone" placeholder="(47) 99999-9999">
+    <div class="checkbox-row">
+      <input type="checkbox" id="includeNames">
+      <span>Incluir lista de nomes e status</span>
+    </div>
+    <div class="report-preview" id="reportPreview"></div>
+    <div class="btn-row">
+      <button class="btn btn-accent" id="sendWhatsBtn">Enviar no WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const DEFAULT_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzB1fK9wuNkfpuWde62sZ3rWO-DYLJe5NMFBljm-akhJU1kYDcFKrlD_DTxU47zU5vE/exec';
+  let APPS_SCRIPT_URL = null;
+  let leads = [];
+  let filters = { status: new Set(), period: 'all', from: null, to: null };
+  let searchTerm = '';
+
+  const $ = (id) => document.getElementById(id);
+  const list = $('list');
+
+  function toast(msg, isErr){
+    const t = $('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (isErr ? ' err' : '');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(()=> t.classList.remove('show'), 2600);
+  }
+
+  // ---------- Setup / config ----------
+  async function loadConfig(){
+    APPS_SCRIPT_URL = DEFAULT_APPS_SCRIPT_URL;
+    try{
+      const r = await window.storage.get('config:apps_script_url');
+      if(r && r.value){ APPS_SCRIPT_URL = r.value; } // permite trocar depois pelas configurações
+    }catch(e){ /* usa o padrão embutido */ }
+    $('setupOverlay').classList.remove('show');
+    fetchLeads();
+  }
+
+  $('setupSaveBtn').onclick = async () => {
+    const url = $('setupUrlInput').value.trim();
+    if(!url.startsWith('https://script.google.com/')){
+      $('setupError').style.display='block';
+      $('setupError').textContent = 'Cole a URL completa do Web App (começa com https://script.google.com/...)';
+      return;
+    }
+    await window.storage.set('config:apps_script_url', url);
+    APPS_SCRIPT_URL = url;
+    $('setupOverlay').classList.remove('show');
+    fetchLeads();
+  };
+
+  $('settingsBtn').onclick = async () => {
+    $('setupUrlInput').value = APPS_SCRIPT_URL || '';
+    $('setupError').style.display='none';
+    $('setupOverlay').classList.add('show');
+  };
+
+  // ---------- Fetch ----------
+  async function fetchLeads(){
+    $('refreshBtn').classList.add('spinning');
+    $('syncStatus').textContent = 'sincronizando...';
+    try{
+      const res = await fetch(APPS_SCRIPT_URL, { method:'GET' });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      leads = (data.leads || []).map(l => ({...l, _date: l.data ? new Date(l.data) : null}));
+      $('syncStatus').textContent = leads.length + ' leads · atualizado agora';
+      $('trackWrap').style.display='block';
+      $('statsRow').style.display='grid';
+      $('toolbar').style.display='flex';
+      $('exportFab').style.display='flex';
+      render();
+    }catch(err){
+      $('syncStatus').textContent = 'erro ao sincronizar';
+      toast('Não foi possível conectar à planilha. Verifique a URL nas configurações.', true);
+      list.innerHTML = '<div class="empty-state"><div class="e-title">Falha na conexão</div>Confira se o Apps Script foi publicado como "Anyone" e a URL está correta.</div>';
+    }finally{
+      $('refreshBtn').classList.remove('spinning');
+    }
+  }
+  $('refreshBtn').onclick = fetchLeads;
+
+  // ---------- Filtering ----------
+  function matchesFilters(l){
+    if(searchTerm){
+      const hay = (l.nome + ' ' + l.whatsapp).toLowerCase();
+      if(!hay.includes(searchTerm.toLowerCase())) return false;
+    }
+    if(filters.status.size > 0){
+      const st = l.status || '';
+      if(!filters.status.has(st)) return false;
+    }
+    if(filters.period !== 'all' && l._date){
+      const now = new Date();
+      let from, to;
+      if(filters.period === 'hoje'){
+        from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        to = new Date(from.getTime() + 86400000);
+      } else if(filters.period === '7' || filters.period === '30'){
+        const days = parseInt(filters.period, 10);
+        from = new Date(now.getTime() - days*86400000);
+        to = new Date(now.getTime() + 86400000);
+      } else if(filters.period === 'custom'){
+        from = filters.from ? new Date(filters.from) : null;
+        to = filters.to ? new Date(new Date(filters.to).getTime()+86400000) : null;
+      }
+      if(from && l._date < from) return false;
+      if(to && l._date >= to) return false;
+    }
+    return true;
+  }
+
+  function getFiltered(){ return leads.filter(matchesFilters); }
+
+  // ---------- Render ----------
+  function relTime(d){
+    if(!d || isNaN(d)) return '';
+    const diff = (Date.now() - d.getTime())/1000;
+    if(diff < 3600) return Math.max(1,Math.round(diff/60)) + ' min atrás';
+    if(diff < 86400) return Math.round(diff/3600) + 'h atrás';
+    if(diff < 172800) return 'Ontem';
+    return d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
+  }
+
+  function statusClass(s){
+    if(s === 'Qualificado') return 'qualificado';
+    if(s === 'Desqualificado') return 'desqualificado';
+    if(s === 'Vendeu') return 'vendeu';
+    return '';
+  }
+
+  function waLink(num){
+    let digits = (num || '').replace(/\\D/g,'');
+    if(digits.length <= 11) digits = '55' + digits;
+    return 'https://wa.me/' + digits;
+  }
+
+  function render(){
+    const filtered = getFiltered();
+
+    // stats (based on filtered set)
+    const counts = { Qualificado:0, Desqualificado:0, Vendeu:0 };
+    filtered.forEach(l => { if(counts[l.status] !== undefined) counts[l.status]++; });
+    const total = filtered.length || 1;
+    $('statTotal').textContent = filtered.length;
+    $('statQ').textContent = counts.Qualificado;
+    $('statD').textContent = counts.Desqualificado;
+    $('statV').textContent = counts.Vendeu;
+
+    const track = $('track');
+    track.innerHTML = '';
+    ['Qualificado','Desqualificado','Vendeu'].forEach(s => {
+      const seg = document.createElement('div');
+      seg.className = 'track-seg ' + statusClass(s);
+      seg.style.flexGrow = counts[s];
+      track.appendChild(seg);
+    });
+    const semStatus = filtered.length - counts.Qualificado - counts.Desqualificado - counts.Vendeu;
+    const segVazio = document.createElement('div');
+    segVazio.className = 'track-seg vazio';
+    segVazio.style.flexGrow = Math.max(semStatus, filtered.length ? 0 : 1);
+    track.appendChild(segVazio);
+    $('trackPct').textContent = filtered.length ? Math.round((counts.Vendeu/filtered.length)*100) + '% vendeu' : '';
+
+    // filter dot
+    const hasFilters = filters.status.size > 0 || filters.period !== 'all' || searchTerm;
+    $('filterDot').classList.toggle('show', filters.status.size > 0 || filters.period !== 'all');
+    $('filterBtn').classList.toggle('active', filters.status.size > 0 || filters.period !== 'all');
+
+    // list
+    if(filtered.length === 0){
+      list.innerHTML = '<div class="empty-state"><div class="e-title">Nenhum lead encontrado</div>Tente ajustar os filtros ou a busca.</div>';
+      return;
+    }
+    const sorted = [...filtered].sort((a,b) => (b._date||0) - (a._date||0));
+    list.innerHTML = sorted.map(l => {
+      const sc = statusClass(l.status);
+      return '<div class="card st-'+sc+'" data-row="'+l.row+'">' +
+        '<div class="card-top">' +
+          '<div><div class="card-name">'+escapeHtml(l.nome || 'Sem nome')+'</div>' +
+          '<div class="card-meta">' +
+            '<span>'+relTime(l._date)+'</span>' +
+            (l.whatsapp ? '<span>·</span><a class="wa-link" href="'+waLink(l.whatsapp)+'" target="_blank" rel="noopener">'+l.whatsapp+'</a>' : '') +
+          '</div></div>' +
+        '</div>' +
+        '<div class="card-actions">' +
+          pill(l,'Qualificado') + pill(l,'Desqualificado') + pill(l,'Vendeu') +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function pill(l, value){
+    const sel = l.status === value ? ' sel ' + statusClass(value) : '';
+    const label = value === 'Qualificado' ? 'Qualif.' : (value === 'Desqualificado' ? 'Desqual.' : 'Vendeu');
+    return '<div class="status-pill'+sel+'" data-row="'+l.row+'" data-status="'+value+'">'+label+'</div>';
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  list.addEventListener('click', async (e) => {
+    const pillEl = e.target.closest('.status-pill');
+    if(!pillEl) return;
+    const row = parseInt(pillEl.dataset.row, 10);
+    const newStatus = pillEl.dataset.status;
+    const lead = leads.find(l => l.row === row);
+    if(!lead) return;
+    const finalStatus = lead.status === newStatus ? '' : newStatus; // toggle off if tapping the same
+    const card = pillEl.closest('.card');
+    const prevStatus = lead.status;
+    lead.status = finalStatus; // optimistic
+    card.classList.add('saving');
+    render();
+    try{
+      const res = await fetch(APPS_SCRIPT_URL, {
+        method:'POST',
+        headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body: JSON.stringify({ row, status: finalStatus })
+      });
+      const data = await res.json();
+      if(!data.ok) throw new Error(data.error || 'Falha ao salvar');
+      toast(finalStatus ? 'Marcado como ' + finalStatus : 'Status removido');
+    }catch(err){
+      lead.status = prevStatus; // rollback
+      render();
+      toast('Erro ao salvar na planilha. Tente novamente.', true);
+    }
+  });
+
+  // ---------- Search ----------
+  let searchDebounce;
+  $('searchInput').addEventListener('input', (e) => {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => { searchTerm = e.target.value; render(); }, 200);
+  });
+
+  // ---------- Filter sheet ----------
+  $('filterBtn').onclick = () => $('filterOverlay').classList.add('show');
+  $('closeFilterBtn').onclick = () => $('filterOverlay').classList.remove('show');
+  $('filterOverlay').addEventListener('click', (e) => { if(e.target.id === 'filterOverlay') $('filterOverlay').classList.remove('show'); });
+
+  $('statusChips').addEventListener('click', (e) => {
+    const chip = e.target.closest('.chip');
+    if(!chip) return;
+    chip.classList.toggle('sel');
+  });
+  $('periodChips').addEventListener('click', (e) => {
+    const chip = e.target.closest('.chip');
+    if(!chip) return;
+    [...$('periodChips').children].forEach(c => c.classList.remove('sel'));
+    chip.classList.add('sel');
+    $('customDateRow').style.display = chip.dataset.v === 'custom' ? 'flex' : 'none';
+  });
+
+  $('clearFilterBtn').onclick = () => {
+    [...$('statusChips').children].forEach(c => c.classList.remove('sel'));
+    [...$('periodChips').children].forEach(c => c.classList.remove('sel'));
+    $('periodChips').children[4].classList.add('sel'); // "Tudo"
+    $('customDateRow').style.display = 'none';
+    $('dateFrom').value = ''; $('dateTo').value = '';
+  };
+
+  $('applyFilterBtn').onclick = () => {
+    filters.status = new Set([...$('statusChips').children].filter(c => c.classList.contains('sel')).map(c => c.dataset.v));
+    const periodChip = [...$('periodChips').children].find(c => c.classList.contains('sel'));
+    filters.period = periodChip ? periodChip.dataset.v : 'all';
+    filters.from = $('dateFrom').value || null;
+    filters.to = $('dateTo').value || null;
+    $('filterOverlay').classList.remove('show');
+    render();
+  };
+
+  // ---------- Export ----------
+  $('exportFab').onclick = () => {
+    updateReportPreview();
+    $('exportOverlay').classList.add('show');
+  };
+  $('closeExportBtn').onclick = () => $('exportOverlay').classList.remove('show');
+  $('exportOverlay').addEventListener('click', (e) => { if(e.target.id === 'exportOverlay') $('exportOverlay').classList.remove('show'); });
+  $('includeNames').addEventListener('change', updateReportPreview);
+
+  function buildReport(){
+    const filtered = getFiltered();
+    const counts = { Qualificado:0, Desqualificado:0, Vendeu:0 };
+    filtered.forEach(l => { if(counts[l.status] !== undefined) counts[l.status]++; });
+    const semStatus = filtered.length - counts.Qualificado - counts.Desqualificado - counts.Vendeu;
+    const taxa = filtered.length ? Math.round((counts.Vendeu/filtered.length)*100) : 0;
+
+    let periodLabel = 'Tudo';
+    if(filters.period === 'hoje') periodLabel = 'Hoje';
+    else if(filters.period === '7') periodLabel = 'Últimos 7 dias';
+    else if(filters.period === '30') periodLabel = 'Últimos 30 dias';
+    else if(filters.period === 'custom') periodLabel = (filters.from||'?') + ' a ' + (filters.to||'?');
+
+    let txt = '📊 *Relatório de Leads — Naport*\\n';
+    txt += 'Período: ' + periodLabel + '\\n\\n';
+    txt += 'Total: ' + filtered.length + '\\n';
+    txt += '✅ Qualificados: ' + counts.Qualificado + '\\n';
+    txt += '❌ Desqualificados: ' + counts.Desqualificado + '\\n';
+    txt += '💰 Vendeu: ' + counts.Vendeu + '\\n';
+    txt += '⏳ Sem status: ' + semStatus + '\\n\\n';
+    txt += 'Taxa de conversão: ' + taxa + '%';
+
+    if($('includeNames').checked){
+      txt += '\\n\\n— Lista —\\n';
+      const sorted = [...filtered].sort((a,b) => (b._date||0) - (a._date||0));
+      sorted.forEach(l => {
+        txt += '• ' + (l.nome||'Sem nome') + ' — ' + (l.status || 'Sem status') + '\\n';
+      });
+    }
+    return txt;
+  }
+
+  function updateReportPreview(){
+    $('reportPreview').textContent = buildReport();
+  }
+
+  $('sendWhatsBtn').onclick = () => {
+    const phone = $('exportPhone').value.trim();
+    if(!phone){ toast('Digite o número de WhatsApp', true); return; }
+    let digits = phone.replace(/\\D/g,'');
+    if(digits.length <= 11) digits = '55' + digits;
+    const text = encodeURIComponent(buildReport());
+    window.open('https://wa.me/' + digits + '?text=' + text, '_blank');
+    $('exportOverlay').classList.remove('show');
+  };
+
+  loadConfig();
+})();
+</script>
+</body>
+</html>
