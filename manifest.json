@@ -1,7 +1,7 @@
 {
-  "name": "Leads · Naport",
-  "short_name": "Leads Naport",
-  "description": "Controle de leads Naport",
+  "name": "Leads · Edvaldo",
+  "short_name": "Leads Edvaldo",
+  "description": "Controle de leads Edvaldo",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
